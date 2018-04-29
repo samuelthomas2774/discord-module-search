@@ -12,19 +12,5 @@
         ],
         "version": 1.0,
         "description": "Allows you to visually search through Discord's internal modules."
-    },
-    "main": "index.js",
-    "defaultConfig": [
-        {
-            "id": "default",
-            "settings": [
-                {
-                    "id": "open",
-                    "type": "keybind",
-                    "value": "alt+m",
-                    "text": "Keybind"
-                }
-            ]
-        }
-    ]
+    }
 }

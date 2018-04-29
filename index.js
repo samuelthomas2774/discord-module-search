@@ -17,7 +17,6 @@ const writeFile = promisify(fs.writeFile);
 module.exports = (Plugin, PluginApi, Vendor, Dependencies, CommonComponents) => {
     const { DiscordApi, BdMenuItems, Modals, WebpackModules, CssUtils, Filters, Utils, Settings, Api } = PluginApi;
     const { $, Vue } = Vendor;
-    // const { FormButton } = CommonComponents;
 
     const hljs = WebpackModules.getModuleByName('hljs', Filters.byProperties(['highlight', 'highlightBlock']));
 
@@ -29,17 +28,14 @@ module.exports = (Plugin, PluginApi, Vendor, Dependencies, CommonComponents) => 
             const scss = await readFile(path.join(__dirname, 'index.scss'), 'utf-8');
             await CssUtils.injectSass(scss);
 
-            this.openKeybindHandler = this.openKeybindHandler.bind(this);
             this.moduleFilter = this.moduleFilter.bind(this);
-
-            this.openKeybind = this.settings.getSetting('default', 'open').on('keybind-activated', this.openKeybindHandler);
 
             this.menuItem = BdMenuItems.addVueComponent('Developer Tools', this.name, SettingsComponent);
 
             this.filterSettingsSet = Settings.createSet({text: 'Module Filter', headertext: 'Filters'});
             this.filterSettingsSet.on('settings-updated', async event => {
                 if (event.data && event.data.dont_save) return;
-                await writeFile(path.join(__dirname, 'filter-settings.json'), JSON.stringify(this.filterSettingsSet.strip(), null, 4));
+                await writeFile(path.join(__dirname, 'filter-settings.json'), JSON.stringify(this.filterSettingsSet.strip()));
                 this.filterSettingsSet.setSaved();
             });
 
@@ -62,7 +58,7 @@ module.exports = (Plugin, PluginApi, Vendor, Dependencies, CommonComponents) => 
                 type: 'dropdown',
                 text: 'Require name',
                 hint: 'Only show modules that have/don\'t have a name.',
-                value: 'ignore',
+                value: 'has-name',
                 options: [
                     { id: 'ignore', value: undefined, text: 'Ignore name' },
                     { id: 'no-name', value: false, text: 'Require no name' },
@@ -125,18 +121,6 @@ module.exports = (Plugin, PluginApi, Vendor, Dependencies, CommonComponents) => 
             BdMenuItems.removeAll();
         }
 
-        openKeybindHandler() {
-            this.open();
-        }
-
-        open() {
-            return Modals.add({
-                Modal: Modals.baseComponent,
-                require: WebpackModules.require,
-                plugin: this
-            }, ModulesModal);
-        }
-
         showModuleDetail(id) {
             return Modals.add({
                 Modal: Modals.baseComponent,
@@ -158,9 +142,6 @@ module.exports = (Plugin, PluginApi, Vendor, Dependencies, CommonComponents) => 
             if (set.get('default', 'require-loaded') === true && !req.c[m.id]) return false;
             if (set.get('default', 'require-loaded') === false && req.c[m.id]) return false;
 
-            // const ReactComponent = WebpackModules.getModuleByName('React').Component;
-            // if (set.get('default', 'react-component') === true && !req.c[m.id] || !req.c[m.id].exports.prototype instanceof ReactComponent) return false;
-            // if (set.get('default', 'react-component') === false && !req.c[m.id] || req.c[m.id].exports.prototype instanceof ReactComponent) return false;
             if (set.get('default', 'react-component') === true && (!req.c[m.id] || !req.c[m.id].exports.prototype || !req.c[m.id].exports.prototype.isReactComponent)) return false;
             if (set.get('default', 'react-component') === false && (!req.c[m.id] || !req.c[m.id].exports.prototype || req.c[m.id].exports.prototype.isReactComponent)) return false;
 
@@ -174,7 +155,6 @@ module.exports = (Plugin, PluginApi, Vendor, Dependencies, CommonComponents) => 
             }
 
             const prototypes = set.getSetting('default', 'prototypes').items.map(i => i.get('default', 'property'));
-            // if (prototypes.length && !req.c[m.id] || !Filters.byPrototypeFields(prototypes)(req.c[m.id].exports.default || req.c[m.id].exports)) return false;
             if (prototypes.length) {
                 if (!req.c[m.id]) return false;
                 if (!Filters.byPrototypeFields(prototypes)(req.c[m.id].exports.default || req.c[m.id].exports)) return false;
@@ -214,36 +194,9 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
         template: `<pre class="bd-pre-wrap"><div class="bd-pre" ref="code" v-html="hightlightedCode"></div></pre>`
     });
 
-    const InspectorValue = components.InspectorValue = Vue.extend({
-        name: 'InspectorValue',
-        components: {
-            // InspectorValue: InspectorValueComponent,
-            SyntaxHighlighting
-        },
-        props: ['value', 'indent'],
-        computed: {
-            name() {
-                return 'Object';
-            }
-        },
-        template: `<span class="wms-inspector-value">{{ name }} {{ value instanceof Array ? '[' : '{' }}
-<span class="wms-inspector-row" v-for="(v, k) in Object.keys(value)">{{ indent + '  ' }}<span class="wms-inspector-key">{{ k }}</span> <InspectorValue :value="v" :indent="indent + '  '" /></span>{{ value instanceof Array ? ']' : '}' }}</span>`
-    });
-
-    const Inspector = components.Inspector = Vue.extend({
-        components: {
-            InspectorValue
-        },
-        props: ['value'],
-        template: `<div class="wms-inspector">
-            <InspectorValue :value="value" :indent="''" />
-        </div>`
-    });
-
     const Module = components.Module = Vue.extend({
         components: {
-            SyntaxHighlighting,
-            Inspector
+            SyntaxHighlighting
         },
         props: ['id', 'module', 'module-function'],
         data() {
@@ -268,8 +221,6 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
                 }
             },
             isReactComponent() {
-                // return this.module.c.exports.prototype instanceof WebpackModules.getModuleByName('React').Component;
-                // return this.module.c.exports.prototype && this.module.c.exports.prototype.isReactComponent;
                 return this.module.c && ((this.module.c.exports.prototype && this.module.c.exports.prototype.isReactComponent) || (this.module.c.exports.default && this.module.c.exports.default.prototype && this.module.c.exports.default.prototype.isReactComponent));
             }
         },
@@ -286,7 +237,6 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
                 if (!el.nextSibling.textContent.match(/^\)/)) continue;
                 el.previousSibling.textContent = el.previousSibling.textContent.substr(0, el.previousSibling.textContent.length - 2);
                 el.nextSibling.textContent = el.nextSibling.textContent.substr(1);
-                // $(el).wrap('<a></a>').before('n(').after(')');
                 $(el).replaceWith($(`<a class="wms-module-link">n(<span class="hljs-number">${el.innerHTML}</span>)</a>`).click(() => Api.plugin.showModuleDetail(parseInt(el.innerHTML))));
             }
         },
@@ -313,7 +263,6 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
             <template v-if="module.c">
                 <h3 class="bd-form-header">Exports</h3>
                 <pre class="bd-pre-wrap"><div class="bd-pre">{{ require('util').inspect(module.c.exports) }}</div></pre>
-                <!-- <pre class="bd-pre-wrap"><div class="bd-pre"><Inspector :value="module.c.exports" /></div></pre> -->
             </template>
 
             <template v-if="module.c && module.c.exports.prototype">
@@ -322,7 +271,6 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
             </template>
 
             <h3 class="bd-form-header">Code</h3>
-            <!-- <pre class="bd-pre-wrap"><div class="bd-pre">{{ beautify(moduleFunction.toString(), { indent_size: 2 }) }}</div></pre> -->
             <SyntaxHighlighting :code="beautify(moduleFunction.toString(), {indent_size: 2})" language="javascript" ref="code" />
         </div>`
     });
@@ -358,31 +306,19 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
             };
         },
         methods: {
-            // isModuleLoaded(id) {
-            //     return this.require.c[id] && this.require.c[id].l;
-            // },
-            // isModuleLoading(id) {
-            //     return this.require.c[id] && !this.require.c[id].l;
-            // },
             matchesFilter(id, filter) {
                 return this.require.c[id] && filter(this.require.c[id].exports.default || this.require.c[id].exports);
             },
             isKnownModule(id) {
                 for (let knownModule in WebpackModules.KnownModules) {
-                    // if (this.require.c[id] && this.require.c[id].exports === WebpackModules.getModuleByName(knownModule))
                     if (this.matchesFilter(id, WebpackModules.KnownModules[knownModule]))
                         return knownModule;
                 }
             },
-            // shouldShowModule(id) {
-            //     // return true;
-            //     return !!this.getModuleName(id);
-            // },
             showModuleDetail(id) {
                 Api.plugin.showModuleDetail(id);
             },
             async updateFilters() {
-                // if (this.loading) throw new Error('Cannot update filter while loading.');
                 const loading = this.loading;
                 if (this.loading) {
                     this.loading = false;
@@ -395,11 +331,9 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
                 const loaded = this.loaded;
                 this.loaded = 0;
                 for (let module of this.modules) {
-                    // if (this.updatingFilter === undefined) this.updatingFilter = false;
                     if (!this.updatingFilter) break;
                     if ((module.id % 25) === 0) await Utils.wait(10);
                     module.show = this.filter(module);
-                    // Vue.set(this.visibleModules, module.id, module.show ? module : undefined);
                     this.visibleModules.splice(module.id, 1, module.show ? module : undefined);
                     this.loaded++;
                 }
@@ -407,11 +341,9 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
                 this.updatingFilter = false;
                 this.loading = loading;
             },
-            async onSettingsUpdated() {
+            onSettingsUpdated() {
                 const filterSettingsSet = Api.plugin.filterSettingsSet;
-
-                await this.updateFilters();
-                // filterSettingsSet.setSaved();
+                this.updateFilters();
             }
         },
         watch: {
@@ -434,7 +366,6 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
         async mounted() {
             this.loading = true;
             this.total = this.require.m.length;
-            // if (this.loaded) return;
             for (let id in this.require.m) {
                 if (!this.loading) await Utils.until(() => this.loading);
                 if ((id % 25) === 0) await Utils.wait(5);
@@ -444,11 +375,9 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
                     status: this.require.c[id] ? this.require.c[id].l ? 'Loaded' : 'Loading' : 'Not loaded'
                 };
                 m.show = this.filter(m);
-                // Vue.set(this.visibleModules, id, m.show ? m : undefined);
                 this.modules.push(m);
                 this.visibleModules.push(m.show ? m : undefined);
                 this.loaded++;
-                // await this.$nextTick();
             }
             this.loading = false;
             Api.plugin.filterSettingsSet.on('settings-updated', this.onSettingsUpdated);
@@ -461,9 +390,7 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
         template: `<div class="wms-modules-wrap">
             <p v-if="updatingFilter && showLoading">Updating filters...</p>
             <p v-if="loading && showLoading">Loading {{ loaded }}/{{ total }}...</p>
-            <div v-if="!loading" class="vms-module-filters">
 
-            </div>
             <div class="wms-modules-table" ref="table">
                 <div class="wms-module-row" v-for="(module, id) in visibleModules.filter(m => m)" v-if="module" @click="showModuleDetail(module.id)">
                     <h3 class="wms-module-header">
@@ -475,16 +402,6 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
                 </div>
             </div>
         </div>`
-    });
-
-    const ModulesModal = components.ModulesModal = Vue.extend({
-        components: {
-            Modules
-        },
-        props: ['modal'],
-        template: `<component :is="modal.Modal" class="wms-modal wms-modules" :class="{'bd-modal-out': modal.closing}" headerText="Module Search" @close="modal.close">
-            <Modules slot="body" class="wms-modal-body" :require="modal.require" :show-loading="true" :filter="modal.plugin.moduleFilter" />
-        </component>`
     });
 
     const Settings = components.Settings = Vue.extend({
@@ -507,23 +424,16 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
             openModal() {
                 this.plugin.open();
             },
-            async reloadPlugin(open) {
-                const plugin = await this.plugin.reload();
-                // if (open) plugin.open();
+            reloadPlugin(open) {
+                this.plugin.reload();
             },
             openFilterSettings() {
                 this.plugin.filterSettingsSet.showModal();
             }
         },
         template: `<component :is="SettingsWrapper" :headertext="plugin.name">
-            <!-- <button @click="openModal">Open</button>
-            <button @click="reloadPlugin()">Reload plugin</button>
-            <button @click="reloadPlugin(true)">Reload plugin and open</button>
-            <button @click="openFilterSettings">Open filters</button> -->
-
             <div class="wms-tools" slot="header">
                 <span v-if="loading || updatingFilters">Searching {{ Math.floor((loaded / total) * 100) }}%...</span>
-                <!-- <FormButton @click="openModal">Open</FormButton> -->
                 <Button @click="reloadPlugin">Reload plugin</Button>
                 <Button @click="openFilterSettings">Filters</Button>
             </div>
