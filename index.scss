@@ -1,0 +1,78 @@
+//@import 'https://highlightjs.org/static/demo/styles/tomorrow-night.css';
+.hljs-comment, .hljs-quote { color: #969896 }
+.hljs-variable, .hljs-template-variable, .hljs-tag, .hljs-name, .hljs-selector-id, .hljs-selector-class, .hljs-regexp, .hljs-deletion { color: #cc6666 }
+.hljs-number, .hljs-built_in, .hljs-builtin-name, .hljs-literal, .hljs-type, .hljs-params, .hljs-meta, .hljs-link { color: #de935f }
+.hljs-attribute { color: #f0c674 }
+.hljs-string, .hljs-symbol, .hljs-bullet, .hljs-addition { color: #b5bd68 }
+.hljs-title, .hljs-section { color: #81a2be }
+.hljs-keyword, .hljs-selector-tag { color: #b294bb }
+// .hljs { display: block; overflow-x: auto; background: #1d1f21; color: #c5c8c6; padding: 0.5em }
+.hljs-emphasis { font-style: italic }
+.hljs-strong { font-weight: bold }
+
+.wms-module-row {
+    display: flex;
+    padding: 15px 0;
+    border-bottom: 1px solid #4a4a4a;
+    cursor: pointer;
+
+    .wms-module-header {
+        display: flex;
+        width: 100%;
+        color: #f6f6f7;
+
+        .wms-module-id {
+            min-width: 50px;
+            margin-right: 15px;
+        }
+
+        .wms-module-name {
+            flex: 1 1 auto;
+        }
+
+        .wms-module-react-component,
+        .wms-module-status {
+            margin-left: 15px;
+        }
+    }
+}
+
+.wms-modal {
+    &.wms-module .bd-modal-inner {
+        width: 800px;
+        max-width: 800px;
+    }
+    .bd-modal-body {
+        padding: 0;
+    }
+    .wms-modal-body {
+        margin-bottom: 15px;
+        padding: 0 15px;
+    }
+}
+
+.wms-module-detail {
+    table {
+        width: 100%;
+    }
+
+    .bd-pre {
+        user-select: initial;
+
+        .wms-module-link {
+            color: inherit;
+            text-decoration: underline;
+        }
+    }
+}
+
+.wms-tools {
+    display: flex;
+    color: #f6f6f7;
+
+    .bd-button {
+        margin: -5px 0 -5px 15px;
+        padding: 5px 8px;
+        border-radius: 3px;
+    }
+}

@@ -1,0 +1,30 @@
+{
+    "info": {
+        "name": "Module Search",
+        "authors": [
+            {
+                "name": "Samuel Elliott",
+                "url": "https://samuelelliott.ml",
+                "discord_id": "284056145272766465",
+                "github_username": "samuelthomas2774",
+                "twitter_username": "_samuelelliott"
+            }
+        ],
+        "version": 1.0,
+        "description": "Allows you to visually search through Discord's internal modules."
+    },
+    "main": "index.js",
+    "defaultConfig": [
+        {
+            "id": "default",
+            "settings": [
+                {
+                    "id": "open",
+                    "type": "keybind",
+                    "value": "alt+m",
+                    "text": "Keybind"
+                }
+            ]
+        }
+    ]
+}
