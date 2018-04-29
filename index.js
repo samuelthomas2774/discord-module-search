@@ -14,14 +14,13 @@ const promisify = (f, ...bind) => (...args) => new Promise((resolve, reject) => 
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 
-module.exports = (Plugin, PluginApi, Vendor, Dependencies, CommonComponents) => {
-    const { DiscordApi, BdMenuItems, Modals, WebpackModules, CssUtils, Filters, Utils, Settings, Api } = PluginApi;
-    const { $, Vue } = Vendor;
+module.exports = (Plugin, PluginApi, { $, Vue }) => {
+    const { DiscordApi, BdMenuItems, Modals, WebpackModules, CssUtils, Filters, Utils, Settings, CommonComponents, Api } = PluginApi;
 
     const hljs = WebpackModules.getModuleByName('hljs', Filters.byProperties(['highlight', 'highlightBlock']));
 
     const components = module.exports.components(Vue, hljs, $, PluginApi, CommonComponents);
-    const { Settings: SettingsComponent, ModulesModal, ModuleModal } = components;
+    const { Settings: SettingsComponent, ModuleModal } = components;
 
     return class ModuleSearch extends Plugin {
         async onstart() {
@@ -420,22 +419,10 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
                 total: 0
             };
         },
-        methods: {
-            openModal() {
-                this.plugin.open();
-            },
-            reloadPlugin(open) {
-                this.plugin.reload();
-            },
-            openFilterSettings() {
-                this.plugin.filterSettingsSet.showModal();
-            }
-        },
         template: `<component :is="SettingsWrapper" :headertext="plugin.name">
             <div class="wms-tools" slot="header">
                 <span v-if="loading || updatingFilters">Searching {{ Math.floor((loaded / total) * 100) }}%...</span>
-                <Button @click="reloadPlugin">Reload plugin</Button>
-                <Button @click="openFilterSettings">Filters</Button>
+                <Button @click="plugin.filterSettingsSet.showModal()">Filters</Button>
             </div>
 
             <Modules :require="Api.WebpackModules.require" :filter="plugin.moduleFilter"
