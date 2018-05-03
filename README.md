@@ -8,4 +8,13 @@ This is a plugin for BetterDiscord v2, which is currently in development. It als
 Installation
 ---
 
-To install [download and unzip the latest `release.zip` from GitHub](https://github.com/samuelthomas2774/discord-module-search/releases) to BetterDiscord's `ext/plugins` directory.
+To install [download and unzip the latest `release.zip` from GitHub](https://github.com/samuelthomas2774/discord-module-search/releases/latest) to BetterDiscord's `ext/plugins` directory.
+
+Screenshots
+---
+
+![The main panel](images/settings-panel-1.png)
+
+![The InviteActions module displayed in the module details modal](images/module-modal-1.png)
+
+![The filter settings modal with the default settings selected](images/filters-modal-1.png)
