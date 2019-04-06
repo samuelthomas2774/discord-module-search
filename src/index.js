@@ -203,12 +203,24 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, Reflection, Filters }, 
 
     const Module = components.Module = Vue.extend({
         components: {
-            SyntaxHighlighting
+            SyntaxHighlighting,
+            // Modules
         },
         props: ['id', 'module', 'module-function'],
         data() {
             return {
-                beautify
+                Api,
+                beautify,
+
+                loadingUses: false,
+                updatingFiltersUses: false,
+                loadedUses: 0,
+                totalUses: 0,
+
+                loadingUsedBy: false,
+                updatingFiltersUsedBy: false,
+                loadedUsedBy: 0,
+                totalUsedBy: 0
             };
         },
         computed: {
@@ -237,6 +249,12 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, Reflection, Filters }, 
             },
             inspect(object) {
                 return util.inspect(object);
+            },
+            filterUses(module) {
+                return this.moduleFunction.toString().match(new RegExp('\\bn\\(' + parseInt(module.id) + '\\)'));
+            },
+            filterUsedBy(module) {
+                return this.Api.Reflection.module.require.m[module.id].toString().match(new RegExp('\\bn\\(' + parseInt(this.id) + '\\)'));
             }
         },
         mounted() {
@@ -253,7 +271,11 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, Reflection, Filters }, 
         template: `<div class="wms-module-detail">
             <table><tbody>
                 <tr>
-                    <td style="width: 10%; min-width: 200px;"><b>Status</b></td>
+                    <td style="width: 10%; min-width: 200px;"><b>ID</b></td>
+                    <td>{{ id }}</td>
+                </tr>
+                <tr>
+                    <td><b>Status</b></td>
                     <td class="wms-module-status">{{ isLoaded ? 'Loaded' : isLoading ? 'Loading' : 'Not loaded' }}</td>
                 </tr>
                 <tr v-if="module.c && module.c.exports.displayName">
@@ -282,6 +304,18 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, Reflection, Filters }, 
 
             <h3 class="bd-formHeader">Code</h3>
             <SyntaxHighlighting :code="beautify(moduleFunction.toString(), {indent_size: 2})" language="javascript" ref="code" />
+
+            <h3 class="bd-formHeader">Uses
+                <span v-if="loadingUses || updatingFiltersUses" class="bd-flexGrow" style="text-align: right;">Searching {{ Math.floor((loadedUses / totalUses) * 100) }}%...</span></h3>
+            <Modules :require="Api.Reflection.module.require" :filter="filterUses"
+                @update-loading="l => loadingUses = l" @update-loaded="l => loadedUses = l"
+                @update-total="t => totalUses = t" @updating-filters="f => updatingFiltersUses = f" />
+
+            <h3 class="bd-formHeader">Used by
+                <span v-if="loadingUsedBy || updatingFiltersUsedBy" class="bd-flexGrow" style="text-align: right;">Searching {{ Math.floor((loadedUsedBy / totalUsedBy) * 100) }}%...</span></h3>
+            <Modules :require="Api.Reflection.module.require" :filter="filterUsedBy"
+                @update-loading="l => loadingUsedBy = l" @update-loaded="l => loadedUsedBy = l"
+                @update-total="t => totalUsedBy = t" @updating-filters="f => updatingFiltersUsedBy = f" />
         </div>`
     });
 
@@ -380,7 +414,7 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, Reflection, Filters }, 
             this.total = this.require.m.length;
             for (let id in this.require.m) {
                 if (!this.loading) await Utils.until(() => this.loading);
-                if ((id % 25) === 0) await Utils.wait(5);
+                if ((id % 25) === 0) await Utils.wait();
                 let m = {
                     id,
                     name: (this.require.c[id] && this.require.c[id].exports && this.require.c[id].exports.displayName) || this.isKnownModule(id) || '',
@@ -415,6 +449,8 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, Reflection, Filters }, 
             </div>
         </div>`
     });
+
+    Module.options.components.Modules = Modules;
 
     const Settings = components.Settings = Vue.extend({
         components: {
