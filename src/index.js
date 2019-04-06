@@ -15,9 +15,9 @@ const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 
 module.exports = (Plugin, PluginApi, { $, Vue }) => {
-    const { DiscordApi, BdMenuItems, Modals, WebpackModules, CssUtils, Filters, Utils, Settings, CommonComponents, Api } = PluginApi;
+    const { DiscordApi, BdMenuItems, Modals, Reflection, CssUtils, Filters, Utils, Settings, CommonComponents, Api } = PluginApi;
 
-    const hljs = WebpackModules.getModuleByName('hljs', Filters.byProperties(['highlight', 'highlightBlock']));
+    const hljs = Reflection.module.byName('hljs', Filters.byProperties(['highlight', 'highlightBlock']));
 
     const components = module.exports.components(Vue, hljs, $, PluginApi, CommonComponents);
     const { Settings: SettingsComponent, ModuleModal } = components;
@@ -38,7 +38,9 @@ module.exports = (Plugin, PluginApi, { $, Vue }) => {
             this.filterSettingsSet = Settings.createSet({text: 'Module Filter', headertext: 'Filters'});
             this.filterSettingsSet.on('settings-updated', async event => {
                 if (event.data && event.data.dont_save) return;
-                await writeFile(path.join(__dirname, 'filter-settings.json'), JSON.stringify(this.filterSettingsSet.strip()));
+                // await writeFile(path.join(__dirname, 'filter-settings.json'), JSON.stringify(this.filterSettingsSet.strip()));
+                this.data.filterSettings = this.filterSettingsSet.strip();
+                await this.saveConfiguration();
                 this.filterSettingsSet.setSaved();
             });
 
@@ -113,8 +115,9 @@ module.exports = (Plugin, PluginApi, { $, Vue }) => {
             });
 
             try {
-                const settings = await readFile(path.join(__dirname, 'filter-settings.json'));
-                await this.filterSettingsSet.merge(JSON.parse(settings), {dont_save: true});
+                // const settings = await readFile(path.join(__dirname, 'filter-settings.json'));
+                // await this.filterSettingsSet.merge(JSON.parse(settings), {dont_save: true});
+                await this.filterSettingsSet.merge(this.data.filterSettings, {dont_save: true});
                 this.filterSettingsSet.setSaved();
             } catch (err) {}
         }
@@ -122,22 +125,23 @@ module.exports = (Plugin, PluginApi, { $, Vue }) => {
         onstop() {
             if (this.openKeybind) this.openKeybind.off('keybind-activated', this.openKeybindHandler);
             BdMenuItems.removeAll();
+            CssUtils.deleteAllStyles();
         }
 
         showModuleDetail(id) {
             return Modals.add({
                 Modal: Modals.baseComponent,
                 module: Object.defineProperty({}, 'c', {
-                    value: WebpackModules.require.c[id]
+                    value: Reflection.module.require.c[id]
                 }),
-                f: WebpackModules.require.m[id],
+                f: Reflection.module.require.m[id],
                 module_id: id
             }, ModuleModal);
         }
 
         moduleFilter(m) {
             const set = this.filterSettingsSet;
-            const req = WebpackModules.require;
+            const req = Reflection.module.require;
 
             if (set.get('default', 'require-name') === true && !m.name) return false;
             if (set.get('default', 'require-name') === false && m.name) return false;
@@ -183,7 +187,7 @@ module.exports = (Plugin, PluginApi, { $, Vue }) => {
     }
 };
 
-module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters }, { Button }) => {
+module.exports.components = (Vue, hljs, $, { Api, Utils, Reflection, Filters }, { Button }) => {
     const components = {};
 
     const SyntaxHighlighting = components.SyntaxHighlighting = Vue.extend({
@@ -194,7 +198,7 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
                 else return hljs.highlight(this.language, this.code, true).value;
             }
         },
-        template: `<pre class="bd-pre-wrap"><div class="bd-pre" ref="code" v-html="hightlightedCode"></div></pre>`
+        template: `<pre class="bd-preWrap"><div class="bd-pre" ref="code" v-html="hightlightedCode"></div></pre>`
     });
 
     const Module = components.Module = Vue.extend({
@@ -218,8 +222,8 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
                 return (this.module.c && this.module.c.exports.displayName) || this.knownModule || '';
             },
             knownModule() {
-                for (let knownModule in WebpackModules.KnownModules) {
-                    if (this.matchesFilter(WebpackModules.KnownModules[knownModule]))
+                for (let knownModule in Reflection.module.KnownModules) {
+                    if (this.matchesFilter(Reflection.module.KnownModules[knownModule]))
                         return knownModule;
                 }
             },
@@ -230,6 +234,9 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
         methods: {
             matchesFilter(filter) {
                 return this.module.c && filter(this.module.c.exports.default || this.module.c.exports);
+            },
+            inspect(object) {
+                return util.inspect(object);
             }
         },
         mounted() {
@@ -264,16 +271,16 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
             </tbody></table>
 
             <template v-if="module.c">
-                <h3 class="bd-form-header">Exports</h3>
-                <pre class="bd-pre-wrap"><div class="bd-pre">{{ require('util').inspect(module.c.exports) }}</div></pre>
+                <h3 class="bd-formHeader">Exports</h3>
+                <pre class="bd-preWrap"><div class="bd-pre">{{ inspect(module.c.exports) }}</div></pre>
             </template>
 
             <template v-if="module.c && module.c.exports.prototype">
-                <h3 class="bd-form-header">Prototype</h3>
-                <pre class="bd-pre-wrap"><div class="bd-pre">{{ require('util').inspect(module.c.exports.prototype) }}</div></pre>
+                <h3 class="bd-formHeader">Prototype</h3>
+                <pre class="bd-preWrap"><div class="bd-pre">{{ inspect(module.c.exports.prototype) }}</div></pre>
             </template>
 
-            <h3 class="bd-form-header">Code</h3>
+            <h3 class="bd-formHeader">Code</h3>
             <SyntaxHighlighting :code="beautify(moduleFunction.toString(), {indent_size: 2})" language="javascript" ref="code" />
         </div>`
     });
@@ -313,9 +320,11 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
                 return this.require.c[id] && filter(this.require.c[id].exports.default || this.require.c[id].exports);
             },
             isKnownModule(id) {
-                for (let knownModule in WebpackModules.KnownModules) {
-                    if (this.matchesFilter(id, WebpackModules.KnownModules[knownModule]))
-                        return knownModule;
+                for (let knownModule in Reflection.module.KnownModules) {
+                    try {
+                        if (this.matchesFilter(id, Reflection.module.KnownModules[knownModule]))
+                            return knownModule;
+                    } catch (err) {}
                 }
             },
             showModuleDetail(id) {
@@ -374,7 +383,7 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
                 if ((id % 25) === 0) await Utils.wait(5);
                 let m = {
                     id,
-                    name: (this.require.c[id] && this.require.c[id].exports.displayName) || this.isKnownModule(id) || '',
+                    name: (this.require.c[id] && this.require.c[id].exports && this.require.c[id].exports.displayName) || this.isKnownModule(id) || '',
                     status: this.require.c[id] ? this.require.c[id].l ? 'Loaded' : 'Loading' : 'Not loaded'
                 };
                 m.show = this.filter(m);
@@ -429,7 +438,7 @@ module.exports.components = (Vue, hljs, $, { Api, Utils, WebpackModules, Filters
                 <Button @click="plugin.filterSettingsSet.showModal()">Filters</Button>
             </div>
 
-            <Modules :require="Api.WebpackModules.require" :filter="plugin.moduleFilter"
+            <Modules :require="Api.Reflection.module.require" :filter="plugin.moduleFilter"
                 @update-loading="l => loading = l" @update-loaded="l => loaded = l"
                 @update-total="t => total = t" @updating-filters="f => updatingFilters = f" />
         </component>`
