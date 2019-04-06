@@ -60,7 +60,9 @@ gulp.task('pack', gulp.series('dependencies', function () {
 
         gulp.src('src/**/*.js'),
         gulp.src('config.json'),
-        gulp.src('node_modules/**/*'),
+
+        gulp.src('release/node_modules'),
+        gulp.src('release/node_modules/**/*', {base: 'release'}),
 
         asar('discord-module-search.bd'),
         gulp.dest('dist'),
