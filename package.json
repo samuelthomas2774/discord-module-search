@@ -7,7 +7,10 @@
         "archiver": "^2.1.1",
         "del": "^3.0.0",
         "gulp": "^4.0.0",
+        "gulp-asar": "^1.0.0",
         "gulp-npm-copy-deps": "^1.0.2",
+        "gulp-rename": "^1.4.0",
+        "gulp-sass": "^4.0.2",
         "pump": "^3.0.0"
     }
 }

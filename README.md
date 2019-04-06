@@ -8,7 +8,7 @@ This is a plugin for BetterDiscord v2, which is currently in development. It als
 Installation
 ---
 
-To install [download and unzip the latest `release.zip` from GitHub](https://github.com/samuelthomas2774/discord-module-search/releases/latest) to BetterDiscord's `ext/plugins` directory.
+To install [download the latest `discord-module-search.bd` from GitHub](https://github.com/samuelthomas2774/discord-module-search/releases/latest) to BetterDiscord's `ext/plugins` directory.
 
 Screenshots
 ---

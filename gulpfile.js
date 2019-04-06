@@ -3,26 +3,29 @@ const del = require('del');
 const pump = require('pump');
 const copydeps = require('gulp-npm-copy-deps');
 const archiver = require('archiver');
+const rename = require('gulp-rename');
+const sass = require('gulp-sass');
+const asar = require('gulp-asar');
 const fs = require('fs');
 
 gulp.task('config', function () {
     return pump([
         gulp.src('./config.json'),
-        gulp.dest('./release')
+        gulp.dest('./release'),
     ]);
 });
 
 gulp.task('main', function () {
     return pump([
         gulp.src('./index.js'),
-        gulp.dest('./release')
+        gulp.dest('./release'),
     ]);
 });
 
 gulp.task('scss', function () {
     return pump([
         gulp.src('./index.scss'),
-        gulp.dest('./release')
+        gulp.dest('./release'),
     ]);
 });
 
@@ -46,3 +49,20 @@ gulp.task('clean', function () {
 });
 
 gulp.task('release', gulp.series('clean', gulp.parallel('main', 'scss', 'config', 'dependencies'), 'package'));
+
+gulp.task('pack', gulp.series('dependencies', function () {
+    return pump([
+        gulp.src('src/index.scss'),
+        rename('index.min.css'),
+        sass({
+            outputStyle: 'compressed',
+        }),
+
+        gulp.src('src/**/*.js'),
+        gulp.src('config.json'),
+        gulp.src('node_modules/**/*'),
+
+        asar('discord-module-search.bd'),
+        gulp.dest('dist'),
+    ]);
+}));
